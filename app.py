@@ -4,7 +4,7 @@ import streamlit as st
 from data import get_data
 from metrics import calculate_metrics
 from significance import run_significance_test
-from strategy import run_strategy
+from strategy import SMACrossover
 
 st.set_page_config(page_title="MA Crossover Backtester", layout="wide")
 
@@ -68,7 +68,9 @@ if len(raw) < long_window + 60:
     )
     st.stop()
 
-data = run_strategy(raw, short_window, long_window)
+strategy = SMACrossover(short_window, long_window)
+data = strategy.apply_signals(raw)
+
 metrics, data = calculate_metrics(data, transaction_cost)
 significance = cached_significance(data)
 

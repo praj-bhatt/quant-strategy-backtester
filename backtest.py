@@ -11,7 +11,7 @@ from metrics import (
     calculate_sharpe_ratio,
 )
 from significance import run_significance_test
-from strategy import run_strategy
+from strategy import RSIMeanReversion, SMACrossover
 
 
 def validate_parameters(short_window, long_window, transaction_cost):
@@ -31,6 +31,7 @@ def validate_parameters(short_window, long_window, transaction_cost):
 def run_backtest(
     ticker="^GSPC",
     period="5y",
+    strategy=None,
     short_window=50,
     long_window=200,
     transaction_cost=0.0005,
@@ -41,7 +42,10 @@ def run_backtest(
 
     data = get_data(ticker, period)
 
-    data = run_strategy(data, short_window, long_window)
+    if strategy is None:
+        strategy = SMACrossover(short_window, long_window)
+
+    data = strategy.apply_signals(data)
 
     metrics, data = calculate_metrics(data, transaction_cost)
 
@@ -186,11 +190,8 @@ def run_portfolio_backtest(
 
         data = get_data(ticker, period)
 
-        data = run_strategy(
-            data,
-            short_window,
-            long_window,
-        )
+        strategy = SMACrossover(short_window, long_window)
+        data = strategy.apply_signals(data)
 
         metrics, data = calculate_metrics(
             data,
@@ -373,11 +374,8 @@ def run_walkforward_backtest(
     best_sharpe = -float("inf")
 
     for short_window, long_window in candidate_windows:
-        train_strategy_data = run_strategy(
-            train_data,
-            short_window,
-            long_window,
-        )
+        strategy = SMACrossover(short_window, long_window)
+        train_strategy_data = strategy.apply_signals(train_data)
 
         train_metrics, _ = calculate_metrics(
             train_strategy_data,
@@ -417,11 +415,11 @@ def run_walkforward_backtest(
         lookback_start:
     ].copy()
 
-    test_strategy_data = run_strategy(
-        test_data_with_lookback,
+    strategy = SMACrossover(
         selected_short_window,
         selected_long_window,
     )
+    test_strategy_data = strategy.apply_signals(test_data_with_lookback)
 
     test_strategy_data = test_strategy_data[
         test_strategy_data.index >= test_data.index[0]
@@ -527,6 +525,7 @@ if __name__ == "__main__":
     data, fig, price_fig = run_backtest(
         ticker="^GSPC",
         period="5y",
+        strategy=RSIMeanReversion(14, 30, 70),
         short_window=50,
         long_window=200,
         transaction_cost=0.0005,
