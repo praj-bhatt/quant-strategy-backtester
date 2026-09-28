@@ -57,7 +57,7 @@ if short_window >= long_window:
 
 try:
     raw = load_data(ticker, period)
-except Exception as exc:
+except RuntimeError as exc:
     st.error(f"Could not load data for {ticker}: {exc}")
     st.stop()
 
