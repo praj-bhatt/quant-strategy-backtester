@@ -1,5 +1,7 @@
 import numpy as np
 
+DAYS_PER_YEAR = 365.25
+
 
 def calculate_max_drawdown(cumulative_returns):
     running_max = cumulative_returns.cummax()
@@ -17,8 +19,17 @@ def calculate_sharpe_ratio(returns, risk_free_rate=0.03):
         return 0.0
 
 
-def calculate_cagr(cumulative_return, periods, trading_days=252):
-    return cumulative_return ** (trading_days / periods) - 1
+def calculate_cagr(cumulative_return, start_date, end_date):
+    """Annualized return based on the actual calendar time elapsed."""
+    elapsed_years = (end_date - start_date).days / DAYS_PER_YEAR
+
+    if elapsed_years <= 0:
+        raise ValueError(
+            "Cannot calculate CAGR: end_date must be after start_date "
+            f"(got {start_date} to {end_date})"
+        )
+
+    return cumulative_return ** (1 / elapsed_years) - 1
 
 
 def calculate_metrics(data, transaction_cost=0.0005):
@@ -45,14 +56,17 @@ def calculate_metrics(data, transaction_cost=0.0005):
     invested_days = data["Position"].sum()
     exposure = invested_days / len(data)
 
+    start_date = data.index[0]
+    end_date = data.index[-1]
+
     metrics = {
         "buy_hold_return": data["Cum_Asset_Return"].iloc[-1] - 1,
         "strategy_return": data["Cum_Strategy_Return"].iloc[-1] - 1,
         "annualized_return": calculate_cagr(
-            data["Cum_Strategy_Return"].iloc[-1], len(data), 252
+            data["Cum_Strategy_Return"].iloc[-1], start_date, end_date
         ),
         "buy_hold_cagr": calculate_cagr(
-            data["Cum_Asset_Return"].iloc[-1], len(data), 252
+            data["Cum_Asset_Return"].iloc[-1], start_date, end_date
         ),
         "max_drawdown": max_drawdown,
         "buy_hold_max_drawdown": buy_hold_max_drawdown,

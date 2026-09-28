@@ -369,9 +369,8 @@ def run_walkforward_backtest(
         "(for selection only, not a performance claim)"
     )
 
+    selected_short_window, selected_long_window = candidate_windows[0]
     best_sharpe = -float("inf")
-    selected_short_window = None
-    selected_long_window = None
 
     for short_window, long_window in candidate_windows:
         train_strategy_data = run_strategy(
