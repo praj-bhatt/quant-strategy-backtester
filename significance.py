@@ -3,14 +3,15 @@ import numpy as np
 from metrics import calculate_sharpe_ratio
 
 
-def run_significance_test(data, num_simulations=1000):
+def run_significance_test(data, num_simulations=1000, seed=42):
+    rng = np.random.default_rng(seed)
     invested_days = int(data["Position"].sum())
     num_days = len(data)
 
     simulated_sharpes = []
 
     for _ in range(num_simulations):
-        random_indices = np.random.choice(
+        random_indices = rng.choice(
             num_days,
             size=invested_days,
             replace=False,

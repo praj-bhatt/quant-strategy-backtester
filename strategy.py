@@ -1,28 +1,61 @@
 import numpy as np
+import pandas as pd
+
+from base_strategy import BaseStrategy
 
 
-def run_strategy(data, short_window=50, long_window=200):
-    data = data.copy()
+class SMACrossover(BaseStrategy):
+    def __init__(self, short_window=50, long_window=200):
+        if short_window <= 0 or long_window <= 0:
+            raise ValueError("Window sizes must be positive.")
 
-    data[f"SMA_{short_window}"] = data["Adj Close"].rolling(window=short_window).mean()
+        if short_window >= long_window:
+            raise ValueError("Short window must be smaller than long window.")
 
-    data[f"SMA_{long_window}"] = data["Adj Close"].rolling(window=long_window).mean()
+        self.short_window = short_window
+        self.long_window = long_window
 
-    data = data.dropna(subset=[f"SMA_{short_window}", f"SMA_{long_window}"]).copy()
+    def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
+        data = data.copy()
 
-    data["Signal"] = np.where(
-        data[f"SMA_{short_window}"] > data[f"SMA_{long_window}"], 1, 0
-    )
+        data[f"SMA_{self.short_window}"] = (
+            data["Adj Close"]
+            .rolling(window=self.short_window)
+            .mean()
+        )
 
-    data["Position"] = data["Signal"].shift(1).fillna(0)
+        data[f"SMA_{self.long_window}"] = (
+            data["Adj Close"]
+            .rolling(window=self.long_window)
+            .mean()
+        )
 
-    data["Trade"] = data["Position"].diff().abs().fillna(0)
+        data = data.dropna(
+            subset=[
+                f"SMA_{self.short_window}",
+                f"SMA_{self.long_window}",
+            ]
+        ).copy()
 
-    data["Buy"] = ((data["Position"] == 1) & (data["Position"].shift(1) == 0)).astype(
-        int
-    )
+        data["Signal"] = np.where(
+            data[f"SMA_{self.short_window}"]
+            > data[f"SMA_{self.long_window}"],
+            1,
+            0,
+        )
 
-    data["Sell"] = ((data["Position"] == 0) & (data["Position"].shift(1) == 1)).astype(
-        int
-    )
-    return data
+        data["Position"] = data["Signal"].shift(1).fillna(0)
+
+        data["Trade"] = data["Position"].diff().abs().fillna(0)
+
+        data["Buy"] = (
+            (data["Position"] == 1)
+            & (data["Position"].shift(1) == 0)
+        ).astype(int)
+
+        data["Sell"] = (
+            (data["Position"] == 0)
+            & (data["Position"].shift(1) == 1)
+        ).astype(int)
+
+        return data
