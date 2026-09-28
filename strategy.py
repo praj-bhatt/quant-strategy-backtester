@@ -33,7 +33,7 @@ class SMACrossover(BaseStrategy):
         data["Signal"] = np.where(
             data[f"SMA_{self.short_window}"] > data[f"SMA_{self.long_window}"],
             1,
-            0,
+            -1,
         )
 
         return data
@@ -66,16 +66,14 @@ class RSIMeanReversion(BaseStrategy):
 
         relative_strength = average_gain / average_loss
 
-        data["RSI"] = 100 - (
-            100 / (1 + relative_strength)
-        )
+        data["RSI"] = 100 - (100 / (1 + relative_strength))
 
         data = data.dropna(subset=["RSI"]).copy()
 
         data["Signal"] = np.where(
             data["RSI"] < self.oversold,
             1,
-            np.where(data["RSI"] > self.overbought, 0, np.nan),
+            np.where(data["RSI"] > self.overbought, -1, np.nan),
         )
 
         data["Signal"] = data["Signal"].ffill().fillna(0)

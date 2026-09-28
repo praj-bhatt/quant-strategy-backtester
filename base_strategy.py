@@ -18,12 +18,20 @@ class BaseStrategy(ABC):
 
         data["Buy"] = (
             (data["Position"] == 1)
-            & (data["Position"].shift(1) == 0)
+            & (data["Position"].shift(1) != 1)
+        ).astype(int)
+        data["Sell"] = (
+            (data["Position"] != 1)
+            & (data["Position"].shift(1) == 1)
         ).astype(int)
 
-        data["Sell"] = (
-            (data["Position"] == 0)
-            & (data["Position"].shift(1) == 1)
+        data["Short"] = (
+            (data["Position"] == -1)
+            & (data["Position"].shift(1) != -1)
+        ).astype(int)
+        data["Cover"] = (
+            (data["Position"] != -1)
+            & (data["Position"].shift(1) == -1)
         ).astype(int)
 
         return data

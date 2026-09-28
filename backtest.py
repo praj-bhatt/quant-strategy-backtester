@@ -32,18 +32,17 @@ def run_backtest(
     ticker="^GSPC",
     period="5y",
     strategy=None,
-    short_window=50,
-    long_window=200,
     transaction_cost=0.0005,
 ):
-    validate_parameters(short_window, long_window, transaction_cost)
+    if transaction_cost < 0:
+        raise ValueError("transaction_cost cannot be negative")
 
     print(f"Downloading data for {ticker}...")
 
     data = get_data(ticker, period)
 
     if strategy is None:
-        strategy = SMACrossover(short_window, long_window)
+        strategy = SMACrossover()
 
     data = strategy.apply_signals(data)
 
@@ -95,15 +94,12 @@ def run_backtest(
             x=data.index,
             y=data["Cum_Strategy_Return"],
             mode="lines",
-            name=f"{short_window}/{long_window} MA Strategy",
+            name=type(strategy).__name__,
         )
     )
 
     fig.update_layout(
-        title=(
-            f"{short_window}/{long_window} Moving Average "
-            f"Crossover Strategy vs {ticker}"
-        ),
+        title=f"{type(strategy).__name__} vs {ticker}",
         xaxis_title="Date",
         yaxis_title="Cumulative Return",
         hovermode="x unified",
@@ -122,23 +118,27 @@ def run_backtest(
         )
     )
 
-    if f"SMA_{short_window}" in data.columns:
+    if hasattr(strategy, "short_window") and (
+        f"SMA_{strategy.short_window}" in data.columns
+    ):
         price_fig.add_trace(
             go.Scatter(
                 x=data.index,
-                y=data[f"SMA_{short_window}"],
+                y=data[f"SMA_{strategy.short_window}"],
                 mode="lines",
-                name=f"SMA {short_window}",
+                name=f"SMA {strategy.short_window}",
             )
         )
 
-    if f"SMA_{long_window}" in data.columns:
+    if hasattr(strategy, "long_window") and (
+        f"SMA_{strategy.long_window}" in data.columns
+    ):
         price_fig.add_trace(
             go.Scatter(
                 x=data.index,
-                y=data[f"SMA_{long_window}"],
+                y=data[f"SMA_{strategy.long_window}"],
                 mode="lines",
-                name=f"SMA {long_window}",
+                name=f"SMA {strategy.long_window}",
             )
         )
 
@@ -164,7 +164,7 @@ def run_backtest(
     )
 
     price_fig.update_layout(
-        title=f"{ticker} Price and Moving Averages",
+        title=f"{ticker} Price and Strategy Signals",
         xaxis_title="Date",
         yaxis_title="Price",
         hovermode="x unified",
@@ -178,11 +178,14 @@ def run_backtest(
 def run_portfolio_backtest(
     tickers,
     period="5y",
-    short_window=50,
-    long_window=200,
+    strategy=None,
     transaction_cost=0.0005,
 ):
-    validate_parameters(short_window, long_window, transaction_cost)
+    if transaction_cost < 0:
+        raise ValueError("transaction_cost cannot be negative")
+
+    if strategy is None:
+        strategy = SMACrossover()
 
     strategy_returns = {}
     ticker_metrics = {}
@@ -192,7 +195,6 @@ def run_portfolio_backtest(
 
         data = get_data(ticker, period)
 
-        strategy = SMACrossover(short_window, long_window)
         data = strategy.apply_signals(data)
 
         metrics, data = calculate_metrics(
@@ -298,7 +300,10 @@ def run_portfolio_backtest(
     )
 
     portfolio_fig.update_layout(
-        title="Individual Strategies vs Equal-Weight Portfolio",
+        title=(
+            f"{type(strategy).__name__} "
+            "Strategies vs Equal-Weight Portfolio"
+        ),
         xaxis_title="Date",
         yaxis_title="Cumulative Return",
         hovermode="x unified",
@@ -528,16 +533,13 @@ if __name__ == "__main__":
         ticker="^GSPC",
         period="5y",
         strategy=RSIMeanReversion(14, 30, 70),
-        short_window=50,
-        long_window=200,
         transaction_cost=0.0005,
     )
 
     run_portfolio_backtest(
         tickers=["^GSPC", "GLD", "XLK", "XLF", "XLE"],
         period="5y",
-        short_window=50,
-        long_window=200,
+        strategy=SMACrossover(50, 200),
         transaction_cost=0.0005,
     )
 
