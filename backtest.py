@@ -122,23 +122,25 @@ def run_backtest(
         )
     )
 
-    price_fig.add_trace(
-        go.Scatter(
-            x=data.index,
-            y=data[f"SMA_{short_window}"],
-            mode="lines",
-            name=f"SMA {short_window}",
+    if f"SMA_{short_window}" in data.columns:
+        price_fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=data[f"SMA_{short_window}"],
+                mode="lines",
+                name=f"SMA {short_window}",
+            )
         )
-    )
 
-    price_fig.add_trace(
-        go.Scatter(
-            x=data.index,
-            y=data[f"SMA_{long_window}"],
-            mode="lines",
-            name=f"SMA {long_window}",
+    if f"SMA_{long_window}" in data.columns:
+        price_fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=data[f"SMA_{long_window}"],
+                mode="lines",
+                name=f"SMA {long_window}",
+            )
         )
-    )
 
     buy_signals = data[data["Buy"] == 1]
     sell_signals = data[data["Sell"] == 1]
