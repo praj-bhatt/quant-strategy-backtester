@@ -11,8 +11,17 @@ def compute_rsi(prices, period=14):
     gains = delta.clip(lower=0)
     losses = -delta.clip(upper=0)
 
-    average_gain = gains.rolling(window=period).mean()
-    average_loss = losses.rolling(window=period).mean()
+    average_gain = gains.ewm(
+        alpha=1 / period,
+        adjust=False,
+        min_periods=period,
+    ).mean()
+
+    average_loss = losses.ewm(
+        alpha=1 / period,
+        adjust=False,
+        min_periods=period,
+    ).mean()
 
     relative_strength = average_gain / average_loss
 
@@ -41,10 +50,6 @@ class SMACrossover(BaseStrategy):
             data["Adj Close"].rolling(window=self.long_window).mean()
         )
 
-        data = data.dropna(
-            subset=[f"SMA_{self.short_window}", f"SMA_{self.long_window}"]
-        ).copy()
-
         data["Signal"] = np.where(
             data[f"SMA_{self.short_window}"] > data[f"SMA_{self.long_window}"],
             1,
@@ -72,8 +77,6 @@ class RSIMeanReversion(BaseStrategy):
         data = data.copy()
 
         data["RSI"] = compute_rsi(data["Adj Close"], self.rsi_period)
-
-        data = data.dropna(subset=["RSI"]).copy()
 
         data["Signal"] = np.where(
             data["RSI"] < self.oversold,
@@ -165,9 +168,5 @@ class MLPredictor(BaseStrategy):
             )
 
             data["Signal"] = predictions.map({1.0: 1, 0.0: -1})
-
-        data = data.dropna(
-            subset=feature_columns + ["Target", "Signal"]
-        ).copy()
 
         return data
