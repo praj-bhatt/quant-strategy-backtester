@@ -16,7 +16,7 @@ def get_data(ticker="^GSPC", period="5y"):
     connection = sqlite3.connect(DB_PATH)
 
     query = """
-        SELECT date, adj_close
+        SELECT date, adj_close, volume
         FROM prices
         WHERE ticker = ? AND date >= ?
         ORDER BY date
@@ -35,6 +35,11 @@ def get_data(ticker="^GSPC", period="5y"):
         raise RuntimeError(f"No data found for {ticker}")
 
     data = data.set_index("date")
-    data = data.rename(columns={"adj_close": "Adj Close"})
+    data = data.rename(
+        columns={
+            "adj_close": "Adj Close",
+            "volume": "Volume",
+        }
+    )
 
     return data
