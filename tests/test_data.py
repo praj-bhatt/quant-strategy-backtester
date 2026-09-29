@@ -14,12 +14,12 @@ def seeded_db(tmp_path, monkeypatch):
         "volume REAL, PRIMARY KEY (ticker, date))"
     )
 
-    from datetime import date, timedelta
+    from datetime import datetime, timedelta, timezone
 
-    start = date.today() - timedelta(days=365 * 8)
+    start = datetime.now(timezone.utc).date() - timedelta(days=365 * 8)
     rows = []
     d = start
-    while d <= date.today():
+    while d <= datetime.now(timezone.utc).date():
         rows.append(("TEST", d.isoformat(), 100.0, 1000.0))
         d += timedelta(days=1)
 

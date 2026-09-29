@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 from data import get_data
 from metrics import calculate_metrics
 from significance import run_significance_test
-from strategy import RSIMeanReversion, SMACrossover
+from strategy import MLPredictor, RSIMeanReversion, SMACrossover
 
 st.set_page_config(
     page_title="Quantitative Backtester",
@@ -67,6 +67,7 @@ with st.sidebar:
         [
             "SMA Crossover",
             "RSI Mean Reversion",
+            "ML Predictor",
         ],
     )
 
@@ -101,7 +102,7 @@ with st.sidebar:
             "short otherwise."
         )
 
-    else:
+    elif strategy_type == "RSI Mean Reversion":
         rsi_period = st.slider(
             "RSI Period",
             5,
@@ -139,6 +140,40 @@ with st.sidebar:
             "Long when RSI drops below oversold, "
             "short when above overbought."
         )
+    else:
+        retrain_every = st.slider(
+            "Retrain Every (days)",
+            20,
+            120,
+            60,
+        )
+
+        min_train_window = st.slider(
+            "Minimum Training Window",
+            300,
+            1000,
+            500,
+        )
+
+        n_estimators = st.slider(
+            "Random Forest Trees",
+            50,
+            500,
+            200,
+            step=50,
+        )
+
+        strategy = MLPredictor(
+            retrain_every,
+            min_train_window,
+            n_estimators,
+            random_state=42,
+        )
+
+        st.caption(
+            "Random Forest predicts next-day price direction "
+            "using walk-forward training."
+        )
 
 
 transaction_cost = cost_pct / 100
@@ -160,8 +195,10 @@ except RuntimeError as exc:
 
 if strategy_type == "SMA Crossover":
     min_length = long_window + 60
-else:
+elif strategy_type == "RSI Mean Reversion":
     min_length = rsi_period + 60
+else:
+    min_length = min_train_window + 60
 
 
 if len(raw) < min_length:
@@ -426,7 +463,7 @@ with tab_price:
             height=500,
         )
 
-    else:
+    elif strategy_type == "RSI Mean Reversion":
         price_fig = make_subplots(
             rows=2,
             cols=1,
@@ -564,7 +601,69 @@ with tab_price:
             hovermode="x unified",
             height=650,
         )
+    else:
+        price_fig = go.Figure()
 
+        price_fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=data["Adj Close"],
+                mode="lines",
+                name="Price",
+            )
+        )
+        price_fig.add_trace(
+            go.Scatter(
+                x=buy_signals.index,
+                y=buy_signals["Adj Close"],
+                mode="markers",
+                marker={
+                    "color": "green",
+                    "symbol": "triangle-up",
+                    "size": 12,
+                },
+                name="Buy",
+            )
+        )
+        price_fig.add_trace(
+            go.Scatter(
+                x=sell_signals.index,
+                y=sell_signals["Adj Close"],
+                mode="markers",
+                marker={
+                    "color": "red",
+                    "symbol": "triangle-down",
+                    "size": 12,
+                },
+                name="Sell",
+            )
+        )
+        price_fig.add_trace(
+            go.Scatter(
+                x=short_signals.index,
+                y=short_signals["Adj Close"],
+                mode="markers",
+                marker={
+                    "color": "purple",
+                    "symbol": "triangle-down",
+                    "size": 12,
+                },
+                name="Short",
+            )
+        )
+        price_fig.add_trace(
+            go.Scatter(
+                x=cover_signals.index,
+                y=cover_signals["Adj Close"],
+                mode="markers",
+                marker={
+                    "color": "orange",
+                    "symbol": "triangle-up",
+                    "size": 12,
+                },
+                name="Cover",
+            )
+        )
     st.plotly_chart(
         price_fig,
         use_container_width=True,
