@@ -143,7 +143,7 @@ class MLPredictor(BaseStrategy):
         ):
             block_end = min(block_start + self.retrain_every, len(data))
 
-            train_data = data.iloc[:block_start].dropna(
+            train_data = data.iloc[:block_start - 1].dropna(
                 subset=feature_columns + ["Target"]
             )
 

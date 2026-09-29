@@ -120,5 +120,5 @@ def test_ml_predictor_trains_only_on_past_data(monkeypatch):
 
     result = strategy.generate_signals(data)
 
-    assert fit_max_indices == [499, 559]
+    assert fit_max_indices == [498, 558]
     assert result.index.min() == 0
