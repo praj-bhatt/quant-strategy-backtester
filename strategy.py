@@ -107,18 +107,16 @@ class MLPredictor(BaseStrategy):
 
         daily_returns = data["Adj Close"].pct_change()
 
-        data["Return_1d"] = data["Adj Close"].pct_change(1).shift(1)
-        data["Return_3d"] = data["Adj Close"].pct_change(3).shift(1)
-        data["Return_5d"] = data["Adj Close"].pct_change(5).shift(1)
+        data["Return_1d"] = data["Adj Close"].pct_change(1)
+        data["Return_3d"] = data["Adj Close"].pct_change(3)
+        data["Return_5d"] = data["Adj Close"].pct_change(5)
 
-        data["Volatility_10d"] = daily_returns.rolling(10).std().shift(1)
-        data["Volatility_20d"] = daily_returns.rolling(20).std().shift(1)
+        data["Volatility_10d"] = daily_returns.rolling(10).std()
+        data["Volatility_20d"] = daily_returns.rolling(20).std()
 
-        data["RSI"] = compute_rsi(data["Adj Close"], 14).shift(1)
+        data["RSI"] = compute_rsi(data["Adj Close"], 14)
 
-        data["Volume_Spike"] = (
-            data["Volume"] / data["Volume"].rolling(20).mean()
-        ).shift(1)
+        data["Volume_Spike"] = data["Volume"] / data["Volume"].rolling(20).mean()
         next_day_return = data["Adj Close"].pct_change().shift(-1)
 
         data["Target"] = next_day_return.where(
