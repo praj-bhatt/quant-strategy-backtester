@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-
 from base_strategy import BaseStrategy
+from sklearn.ensemble import RandomForestClassifier
 
 
 def compute_rsi(prices, period=14):
@@ -134,6 +133,7 @@ class MLPredictor(BaseStrategy):
         ]
 
         predictions = pd.Series(index=data.index, dtype="float64")
+        probabilities = pd.Series(index=data.index, dtype="float64")
         for block_start in range(
             self.min_train_window,
             len(data),
@@ -165,8 +165,12 @@ class MLPredictor(BaseStrategy):
             predictions.loc[test_data.index] = model.predict(
                 test_data[feature_columns]
             )
+            probabilities.loc[test_data.index] = model.predict_proba(
+                test_data[feature_columns]
+            )[:, 1]
 
 
         data["Signal"] = predictions.map({1.0: 1, 0.0: -1}).fillna(0)
+        data["ML_Proba"] = probabilities
 
         return data

@@ -96,6 +96,10 @@ def test_ml_predictor_trains_only_on_past_data(monkeypatch):
         def predict(self, X):
             return [0] * len(X)
 
+        def predict_proba(self, X):
+            import numpy as np
+            return np.array([[0.5, 0.5]] * len(X))
+
     monkeypatch.setattr(
         "strategy.RandomForestClassifier",
         SpyRandomForest,

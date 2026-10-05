@@ -1,6 +1,15 @@
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 
 from data import get_data
 from metrics import calculate_metrics
@@ -311,12 +320,13 @@ c10.metric(
 # CHART TABS
 # -------------------------------------------------------------------
 
-tab_equity, tab_price = st.tabs(
-    [
-        "Equity curve",
-        "Price & signals",
-    ]
-)
+if strategy_type == "ML Predictor":
+    tab_equity, tab_price, tab_eval = st.tabs(
+        ["Equity curve", "Price & signals", "Model evaluation"]
+    )
+else:
+    tab_equity, tab_price = st.tabs(["Equity curve", "Price & signals"])
+    tab_eval = None
 
 
 # -------------------------------------------------------------------
@@ -668,6 +678,40 @@ with tab_price:
         price_fig,
         use_container_width=True,
     )
+
+    if tab_eval is not None:
+        with tab_eval:
+            mask = data["ML_Proba"].notna() & data["Target"].notna()
+            y_true = data.loc[mask, "Target"].astype(int)
+            prob = data.loc[mask, "ML_Proba"]
+            y_pred = (prob >= 0.5).astype(int)
+
+            baseline = max(y_true.mean(), 1 - y_true.mean())
+
+            m1, m2, m3 = st.columns(3)
+            m1.metric(
+                "Accuracy",
+                f"{accuracy_score(y_true, y_pred):.3f}",
+                f"{accuracy_score(y_true, y_pred) - baseline:+.3f} vs majority-class baseline",
+            )
+            m2.metric("Precision", f"{precision_score(y_true, y_pred, zero_division=0):.3f}")
+            m3.metric("Recall", f"{recall_score(y_true, y_pred, zero_division=0):.3f}")
+
+            m4, m5 = st.columns(2)
+            m4.metric("F1 score", f"{f1_score(y_true, y_pred, zero_division=0):.3f}")
+            if y_true.nunique() == 2:
+                m5.metric("ROC-AUC", f"{roc_auc_score(y_true, prob):.3f}")
+            else:
+                m5.metric("ROC-AUC", "N/A (one class only)")
+
+            cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
+            cm_df = pd.DataFrame(
+                cm,
+                index=["Actual Down", "Actual Up"],
+                columns=["Predicted Down", "Predicted Up"],
+            )
+            st.subheader("Confusion matrix")
+            st.dataframe(cm_df)
 
 
 # -------------------------------------------------------------------
