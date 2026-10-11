@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
-from base_strategy import BaseStrategy
 from sklearn.ensemble import RandomForestClassifier
+
+from base_strategy import BaseStrategy
 
 
 def compute_rsi(prices, period=14):
