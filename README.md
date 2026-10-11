@@ -50,11 +50,9 @@ Every signal is traded one day later. Once warmed up, each strategy is always lo
 
 ## Findings (^GSPC, 5 years, October 2026)
 
-| Strategy | Return | Buy and hold | Sharpe | Significance percentile |
-|---|---|---|---|---|
-| SMA crossover 50/200 | TODO | TODO | TODO | TODO |
-| RSI mean reversion | TODO | TODO | TODO | TODO |
-| ML predictor | -49.21% | 76.81% | -1.36 | 8.0% |
+The ML predictor returned -49.21% against 76.81% for buy-and-hold, with a Sharpe ratio of -1.36 and a significance percentile of 8.0%. Its accuracy was 0.482 against a majority-class baseline of 0.563, and its ROC-AUC was 0.461, below chance. It traded 631 times. A classifier this close to a coin flip changes its mind often, and every flip pays costs.
+
+This is one asset over one window that is mostly a rising market. It does not show that markets cannot be beaten.
 
 The ML predictor's out-of-sample accuracy was 0.482 against a majority-class baseline of 0.563, and its ROC-AUC was 0.461, below chance. It traded 631 times. A classifier this close to a coin flip changes its mind often, and every flip pays costs.
 
