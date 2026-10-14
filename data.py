@@ -42,4 +42,9 @@ def get_data(ticker="^GSPC", period="5y"):
         }
     )
 
+    data = data.dropna(subset=["Adj Close", "Volume"])
+
+    if data.empty:
+        raise RuntimeError(f"No valid data found for {ticker}")
+
     return data

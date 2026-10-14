@@ -53,3 +53,22 @@ def test_get_data_period_narrows_range(seeded_db):
     narrow = data.get_data("TEST", "3y")
     assert narrow.index.min() > full.index.min()
     assert len(narrow) < len(full)
+
+def test_get_data_removes_missing_values(seeded_db):
+    conn = sqlite3.connect(seeded_db)
+    conn.executemany(
+        "INSERT INTO prices VALUES (?, ?, ?, ?)",
+        [
+            ("DIRTY", "2025-01-01", None, 1000.0),
+            ("DIRTY", "2025-01-02", 100.0, None),
+            ("DIRTY", "2025-01-03", 100.0, 1000.0),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    result = data.get_data("DIRTY", "5y")
+
+    assert len(result) == 1
+    assert result["Adj Close"].notna().all()
+    assert result["Volume"].notna().all()

@@ -34,7 +34,9 @@ class SMACrossover(BaseStrategy):
             raise ValueError("Window sizes must be positive.")
 
         if short_window >= long_window:
-            raise ValueError("Short window must be smaller than long window.")
+            raise ValueError(
+                "Short window must be smaller than long window."
+            )
 
         self.short_window = short_window
         self.long_window = long_window
@@ -51,11 +53,15 @@ class SMACrossover(BaseStrategy):
         )
 
         data["Signal"] = np.where(
-            data[f"SMA_{self.short_window}"] > data[f"SMA_{self.long_window}"],
+            data[f"SMA_{self.short_window}"]
+            > data[f"SMA_{self.long_window}"],
             1,
             -1,
         )
-        data.loc[data[f"SMA_{self.long_window}"].isna(), "Signal"] = 0
+
+        data.loc[
+            data[f"SMA_{self.long_window}"].isna(), "Signal"
+        ] = 0
 
         return data
 
@@ -67,7 +73,8 @@ class RSIMeanReversion(BaseStrategy):
 
         if not 0 <= oversold < overbought <= 100:
             raise ValueError(
-                "RSI thresholds must satisfy 0 <= oversold < overbought <= 100."
+                "RSI thresholds must satisfy "
+                "0 <= oversold < overbought <= 100."
             )
 
         self.rsi_period = rsi_period
@@ -77,17 +84,24 @@ class RSIMeanReversion(BaseStrategy):
     def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
         data = data.copy()
 
-        data["RSI"] = compute_rsi(data["Adj Close"], self.rsi_period)
+        data["RSI"] = compute_rsi(
+            data["Adj Close"], self.rsi_period
+        )
 
         data["Signal"] = np.where(
             data["RSI"] < self.oversold,
             1,
-            np.where(data["RSI"] > self.overbought, -1, np.nan),
+            np.where(
+                data["RSI"] > self.overbought,
+                -1,
+                np.nan,
+            ),
         )
 
         data["Signal"] = data["Signal"].ffill().fillna(0)
 
         return data
+
 
 class MLPredictor(BaseStrategy):
     def __init__(
@@ -116,13 +130,17 @@ class MLPredictor(BaseStrategy):
 
         data["RSI"] = compute_rsi(data["Adj Close"], 14)
 
-        data["Volume_Spike"] = data["Volume"] / data["Volume"].rolling(20).mean()
+        data["Volume_Spike"] = (
+            data["Volume"] / data["Volume"].rolling(20).mean()
+        )
+
         next_day_return = data["Adj Close"].pct_change().shift(-1)
 
         data["Target"] = next_day_return.where(
             next_day_return.isna(),
             next_day_return.gt(0).astype(int),
         )
+
         feature_columns = [
             "Return_1d",
             "Return_3d",
@@ -135,12 +153,16 @@ class MLPredictor(BaseStrategy):
 
         predictions = pd.Series(index=data.index, dtype="float64")
         probabilities = pd.Series(index=data.index, dtype="float64")
+
         for block_start in range(
             self.min_train_window,
             len(data),
             self.retrain_every,
         ):
-            block_end = min(block_start + self.retrain_every, len(data))
+            block_end = min(
+                block_start + self.retrain_every,
+                len(data),
+            )
 
             train_data = data.iloc[:block_start - 1].dropna(
                 subset=feature_columns + ["Target"]
@@ -150,7 +172,10 @@ class MLPredictor(BaseStrategy):
                 subset=feature_columns
             )
 
-            if test_data.empty:
+            if train_data.empty or test_data.empty:
+                continue
+
+            if train_data["Target"].nunique() < 2:
                 continue
 
             model = RandomForestClassifier(
@@ -166,12 +191,17 @@ class MLPredictor(BaseStrategy):
             predictions.loc[test_data.index] = model.predict(
                 test_data[feature_columns]
             )
-            probabilities.loc[test_data.index] = model.predict_proba(
-                test_data[feature_columns]
-            )[:, 1]
 
+            probs = model.predict_proba(
+                            test_data[feature_columns]
+                        )
 
-        data["Signal"] = predictions.map({1.0: 1, 0.0: -1}).fillna(0)
+            probabilities.loc[test_data.index] = probs[:, 1]
+
+        data["Signal"] = (
+            predictions.map({1.0: 1, 0.0: -1}).fillna(0)
+        )
+
         data["ML_Proba"] = probabilities
 
         return data

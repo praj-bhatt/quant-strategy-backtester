@@ -126,3 +126,22 @@ def test_ml_predictor_trains_only_on_past_data(monkeypatch):
 
     assert fit_max_indices == [498, 558]
     assert result.index.min() == 0
+def test_ml_predictor_skips_single_class_training(monkeypatch):
+    import pandas as pd
+    from sklearn.ensemble import RandomForestClassifier
+
+    def fail_if_fit_called(self, X, y):
+        raise AssertionError("Model should not train on a single class")
+
+    monkeypatch.setattr(RandomForestClassifier, "fit", fail_if_fit_called)
+
+    data = pd.DataFrame(
+        {
+            "Adj Close": [100 + i for i in range(550)],
+            "Volume": [1000] * 550,
+        }
+    )
+
+    result = MLPredictor().generate_signals(data)
+
+    assert (result["Signal"] == 0).all()
