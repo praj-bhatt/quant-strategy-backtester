@@ -8,7 +8,7 @@ A backtesting framework for trading strategies, built as a data science project.
 - Three strategies on a shared `BaseStrategy` interface: SMA crossover, RSI mean reversion, and a Random Forest predictor
 - Long and short positions, with transaction costs and short borrow costs
 - Metrics against buy-and-hold: return, CAGR, Sharpe ratio, max drawdown, exposure, trade count
-- Significance test: the strategy's Sharpe ratio against 1,000 random strategies with the same number of long and short days
+- Significance test: compares the strategy's gross Sharpe ratio against 1,000 randomly timed position assignments that preserve the same number of long and short days, using a fixed random seed.
 - Model evaluation tab for the ML strategy: accuracy against a majority-class baseline, precision, recall, F1, ROC-AUC, confusion matrix
 - Streamlit dashboard
 - CLI only (`backtest.py`): equal-weight multi-asset portfolio with a correlation matrix, and walk-forward validation of SMA window selection
@@ -50,13 +50,9 @@ Every signal is traded one day later. Once warmed up, each strategy is always lo
 
 ## Findings (^GSPC, 5 years, October 2026)
 
-The ML predictor returned -49.21% against 76.81% for buy-and-hold, with a Sharpe ratio of -1.36 and a significance percentile of 8.0%. Its accuracy was 0.482 against a majority-class baseline of 0.563, and its ROC-AUC was 0.461, below chance. It traded 631 times. A classifier this close to a coin flip changes its mind often, and every flip pays costs.
+The ML predictor returned -49.21% against 76.81% for buy-and-hold, with a Sharpe ratio of -1.36 and a significance percentile of 8.0%. Its accuracy was 0.482 against a majority-class baseline of 0.563, and its ROC-AUC was 0.461, below chance. It traded 631 times, with frequent position changes contributing to transaction costs.
 
-This is one asset over one window that is mostly a rising market. It does not show that markets cannot be beaten.
-
-The ML predictor's out-of-sample accuracy was 0.482 against a majority-class baseline of 0.563, and its ROC-AUC was 0.461, below chance. It traded 631 times. A classifier this close to a coin flip changes its mind often, and every flip pays costs.
-
-This is one asset over one window that is mostly a rising market. It shows that these simple strategies and a baseline classifier did not beat holding the index here. It does not show that markets cannot be beaten.
+These results cover one asset over one five-year window, during a period that was mostly a rising market. They show that this ML strategy did not outperform buy-and-hold in this evaluation. They do not establish that markets cannot be beaten.
 
 ## Limitations
 
