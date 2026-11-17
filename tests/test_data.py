@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -13,8 +14,6 @@ def seeded_db(tmp_path, monkeypatch):
         "CREATE TABLE prices (ticker TEXT, date TEXT, adj_close REAL, "
         "volume REAL, PRIMARY KEY (ticker, date))"
     )
-
-    from datetime import datetime, timedelta, timezone
 
     start = datetime.now(timezone.utc).date() - timedelta(days=365 * 8)
     rows = []
@@ -54,14 +53,22 @@ def test_get_data_period_narrows_range(seeded_db):
     assert narrow.index.min() > full.index.min()
     assert len(narrow) < len(full)
 
+
+def recent_dates(count=3):
+    today = datetime.now(timezone.utc).date()
+    return [(today - timedelta(days=count - i)).isoformat() for i in range(count)]
+
+
 def test_get_data_removes_missing_values(seeded_db):
+    d1, d2, d3 = recent_dates()
+
     conn = sqlite3.connect(seeded_db)
     conn.executemany(
         "INSERT INTO prices VALUES (?, ?, ?, ?)",
         [
-            ("DIRTY", "2025-01-01", None, 1000.0),
-            ("DIRTY", "2025-01-02", 100.0, None),
-            ("DIRTY", "2025-01-03", 100.0, 1000.0),
+            ("DIRTY", d1, None, 1000.0),
+            ("DIRTY", d2, 100.0, None),
+            ("DIRTY", d3, 100.0, 1000.0),
         ],
     )
     conn.commit()
@@ -72,3 +79,21 @@ def test_get_data_removes_missing_values(seeded_db):
     assert len(result) == 1
     assert result["Adj Close"].notna().all()
     assert result["Volume"].notna().all()
+
+
+def test_get_data_raises_when_every_row_is_invalid(seeded_db):
+    d1, d2, _ = recent_dates()
+
+    conn = sqlite3.connect(seeded_db)
+    conn.executemany(
+        "INSERT INTO prices VALUES (?, ?, ?, ?)",
+        [
+            ("BAD", d1, None, 1000.0),
+            ("BAD", d2, 100.0, None),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    with pytest.raises(RuntimeError, match="No valid data"):
+        data.get_data("BAD", "5y")
