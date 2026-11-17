@@ -2,6 +2,8 @@
 
 A backtesting framework for trading strategies, built as a data science project. Market data is the dataset. The focus is the pipeline around it: ETL into SQL, time-series feature engineering, leakage-free validation, statistical testing, and a classifier evaluated with proper metrics. It is not meant to produce a strategy for real trading.
 
+![Streamlit app: SMA crossover vs buy and hold, with significance test](docs/app.png)
+
 ## What it does
 
 - ETL pipeline from Yahoo Finance into SQLite (`ingestion.py`). Backtests read from the local database with SQL (`data.py`).
