@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -145,3 +146,61 @@ def test_ml_predictor_skips_single_class_training(monkeypatch):
     result = MLPredictor().generate_signals(data)
 
     assert (result["Signal"] == 0).all()
+
+
+def make_random_walk(n):
+    rng = np.random.default_rng(0)
+    close = 100 * np.cumprod(1 + rng.normal(0, 0.01, n))
+    volume = rng.integers(900_000, 1_100_000, n).astype(float)
+    return pd.DataFrame({"Adj Close": close, "Volume": volume})
+
+
+def test_ml_predictor_returns_valid_probabilities():
+    data = make_random_walk(600)
+
+    result = MLPredictor(
+        retrain_every=60,
+        min_train_window=500,
+        n_estimators=10,
+        random_state=42,
+    ).generate_signals(data)
+
+    probabilities = result["ML_Proba"].dropna()
+
+    assert len(probabilities) > 0
+    assert probabilities.between(0, 1).all()
+
+
+def test_ml_predictor_features_use_only_current_and_past_prices():
+    data = make_random_walk(100)
+
+    result = MLPredictor(
+        retrain_every=60,
+        min_train_window=500,
+        n_estimators=10,
+        random_state=42,
+    ).generate_signals(data)
+
+    expected = data["Adj Close"].pct_change()
+    pd.testing.assert_series_equal(
+        result["Return_1d"], expected, check_names=False
+    )
+
+
+def test_ml_predictor_target_is_next_day_direction():
+    data = make_random_walk(100)
+
+    result = MLPredictor(
+        retrain_every=60,
+        min_train_window=500,
+        n_estimators=10,
+        random_state=42,
+    ).generate_signals(data)
+
+    close = data["Adj Close"]
+    expected = (close.shift(-1) > close).astype(float)
+    expected.iloc[-1] = np.nan
+
+    pd.testing.assert_series_equal(
+        result["Target"].astype(float), expected, check_names=False
+    )
